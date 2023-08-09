@@ -61,7 +61,7 @@ class CustomUser(AbstractBaseUser):  # , PermissionsMixin  # , PermissionsMixin)
 class Employee(models.Model):
     customuser = models.OneToOneField('worktime.CustomUser', on_delete=models.CASCADE, related_name='employee')
     country = models.ForeignKey('worktime.Country', on_delete=models.CASCADE, related_name='employee')
-    payment_type = models.ForeignKey('worktime.PaymentType', on_delete=models.CASCADE, related_name='employee')
+    payment_type = models.ForeignKey('worktime.PaymentType', on_delete=models.DO_NOTHING, related_name='employee')
     name = models.CharField(max_length=100, verbose_name='Имя')
     surname = models.CharField(max_length=100, verbose_name='Фамилия')
 
@@ -74,18 +74,29 @@ class Employee(models.Model):
 
 
 class EmployeeTimeStamp(models.Model):
+    STATUS_WORK = 'WORK'
+    STATUS_NOWORK = 'NOWORK'
+    STATUSES = (
+        (STATUS_WORK, 'WORK'),
+        (STATUS_NOWORK, 'NOWORK')
+    )
+    status_work = models.CharField(choices=STATUSES, verbose_name='Статус работы',
+                                      default=STATUS_NOWORK)
     employee = models.ForeignKey('worktime.Employee', on_delete=models.CASCADE, related_name='timestamp')
     employee_sum = models.ForeignKey('working.EmployeeSum', on_delete=models.CASCADE, related_name='timestamp')
-    date_start = models.DateField(auto_now=False, auto_now_add=False, verbose_name="Начало трудового дня")
-    date_end = models.DateField(auto_now=False, auto_now_add=False, verbose_name="Конец трудового дня")
+    date_start = models.DateTimeField(auto_now=False, auto_now_add=False, verbose_name="Начало трудового дня")
+    date_end = models.DateTimeField(auto_now=False, auto_now_add=False, verbose_name="Конец трудового дня")
 
 
 # 1 Nazvanie: EmployeeSum zamenit na DayData 2 Udobnee ne vstavlyat v EmployeeTimeStamp pole ucheta pererivov v rabote,
 # a sdelat ego tut v DayData i libo auto_now=True libo perepisat metod save pod eto
+#Это поле по-моему лишнее:
+#  date = models.DateField(auto_now=False, auto_now_add=False, verbose_name="День, за который идет зачет")
 
 class DayData(models.Model):
+    timestamp = models.ForeignKey('worktime.EmployeeTimeStamp', on_delete=models.CASCADE, related_name='daydata')
     date = models.DateField(auto_now=False, auto_now_add=False, verbose_name="День, за который идет зачет")
-    break_time = models.DateField(auto_now=True, auto_now_add=False, verbose_name="Время начала и остановки работы")
+    break_time = models.DateTimeField(auto_now=True, auto_now_add=False, verbose_name="Время начала и остановки работы")
     sum = models.IntegerField(verbose_name='Сумма заработка за день')
 
 
@@ -116,7 +127,7 @@ class Salary(models.Model):
                                        verbose_name="Конец начисления заработной платы")
     currency = models.ForeignKey('worktime.Currency', on_delete=models.CASCADE)
     amount = models.CharField(max_length=10)
-    payment_type = models.CharField()
+    payment_type = models.ForeignKey('worktime.PaymentType', on_delete=models.DO_NOTHING)
 
 
 class Currency(models.Model):
